@@ -1,0 +1,10 @@
+# Base system packages
+tzdata
+sudo
+locales
+dbus
+dbus-x11
+ca-certificates
+wget
+curl
+nano

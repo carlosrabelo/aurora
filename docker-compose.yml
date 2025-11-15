@@ -1,0 +1,69 @@
+# ==============================================================================
+# Aurora Desktop Environment - Docker Compose Configuration
+# ==============================================================================
+# Defines remote desktop environment based on Debian 13 (Trixie) + XFCE4 + XRDP
+# Access via Remote Desktop Protocol (RDP) on port 3389
+# ==============================================================================
+
+services:
+
+  aurora:
+    # Builds image locally using multi-stage Dockerfile
+    build:
+      context: .                      # Project root as context
+      dockerfile: docker/Dockerfile   # Dockerfile location
+
+    image: ${DOCKER_USER}/${IMAGE_NAME}:${VERSION}  # Image name with version tag
+
+    container_name: aurora            # Fixed container name
+
+    hostname: aurora                  # Container hostname
+
+    # Exposes RDP (Remote Desktop Protocol) port and SSH port
+    # Host:Container
+    ports:
+      - "3389:3389"  # RDP
+      - "2222:22"    # SSH
+
+    # Restarts automatically except if manually stopped
+    restart: unless-stopped
+
+    # Environment variables passed to the container
+    environment:
+      - TZ=${TZ}                      # System timezone
+      - USER_NAME=${USER_NAME}        # Default user name
+      - USER_PASSWORD=${USER_PASSWORD}  # RDP password (set in .env)
+      - HOSTNAME=aurora               # Container hostname
+
+    # Isolated network for inter-container communication
+    networks:
+      - aurora-network
+
+    # Mounts host directory to persist user data
+    # IMPORTANT: Run 'make init' before first start
+    volumes:
+      - /mnt/aurora/home:/home      # Persists home directories
+      - /mnt/aurora/logs:/var/log/aurora  # Persists Aurora logs
+
+    # Shared memory for GUI applications (prevents crashes)
+    shm_size: "1g"
+
+    # Memory limit
+    mem_limit: "4096m"
+
+    # Health check to ensure XRDP is running properly
+    healthcheck:
+      test: ["CMD", "pgrep", "-x", "xrdp"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+# ==============================================================================
+# Networks
+# ==============================================================================
+networks:
+
+  aurora-network:
+    name: aurora-network    # Explicit network name
+    driver: bridge          # Default driver for local communication
